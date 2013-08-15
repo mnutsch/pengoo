@@ -1,0 +1,95 @@
+<html>
+	<head>
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.1/jquery.min.js"></script>
+	</head>
+	<body>
+		<p>
+			<script type="text/javascript">
+				main();
+				function main() {
+					var QA = [];
+					var headURLs = [
+					{ "category" : "animal", 
+					"url" : "http://query.yahooapis.com/v1/public/yql?q=select%20href%20from%20html%20where%20url=%22http://www.faqkids.com/animals%22%20and%20xpath='//*[@id=%22centerCol%22]/div[4]/div/div[*]/div[2]/h4/a'&format=json"},
+					{ "category" : "birds", 
+					"url" :	"http://query.yahooapis.com/v1/public/yql?q=select%20href%20from%20html%20where%20url=%22http://www.faqkids.com/birds%22%20and%20xpath='//*[@id=%22centerCol%22]/div[3]/div/div[*]/div[2]/h4/a'&format=json"},
+					{ "category" : "bugs & insects", 
+					"url" : "http://query.yahooapis.com/v1/public/yql?q=select%20href%20from%20html%20where%20url=%22http://www.faqkids.com/bugs-insects%22%20and%20xpath='//*[@id=%22centerCol%22]/div[3]/div/div[*]/div[2]/h4/a'&format=json"},
+					{ "category" : "cats & dogs", 
+					"url" : "http://query.yahooapis.com/v1/public/yql?q=select%20href%20from%20html%20where%20url=%22http://www.faqkids.com/cats-dogs%22%20and%20xpath='//*[@id=%22centerCol%22]/div[3]/div/div[*]/div[2]/h4/a'&format=json"} 
+					];
+					for (var j = 0, length = headURLs.length; j < length; j++){
+						populateQA(headURLs, QA, j);
+					}
+					$("p").html(JSON.stringify(QA));
+				}
+
+				function populateQA(headURLs, QA, j) {
+					$.ajax({
+						url: headURLs[j].url,
+						data: null,
+						async: false,
+						success: function(data, status) {
+							var qLinks = [];
+							console.log(status);
+							if (status === "success") {
+								qLinks = data.query.results.a;
+								QA.push({"category" : headURLs[j].category, "data" :[]});
+								for (var i = 0, len = qLinks.length; i < len; ++i) {
+									populateQAContent(qLinks, QA, i, j); 
+								}
+							}
+						},
+						error: function(msg){
+							console.log(msg);
+						},
+						dataType: "jsonp"
+					});
+				}
+
+				function populateQAContent(qLinks, QA, i, j) {
+					var qLink = "http://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20html%20where%20url=%22 " + qLinks[i].href + "%22%20and%20xpath='//*[@id=%22wContent%22]/div/div/div[1]/div[2]'&format=json";
+					$.ajax({
+						url: qLink,
+						async: false,
+						data: null,
+						success: function(data, status){
+							console.log(status);
+							if (status === "success") {
+								var q = data.query.results.div.p;
+								QA[j].data.push({ "question" : q });
+							}
+						},
+						error: function(msg){
+							console.log(msg);
+						},
+						dataType: "jsonp"
+					});
+
+					var index = qLinks[i].href.indexOf("-");
+					var qaid = qLinks[i].href.substring(23, index);
+					var aLink = "http://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20html%20where%20url=%22 " + qLinks[i].href + "%22%20and%20xpath='//*[@id=%22post-" + qaid + "%22]/div/div[2]/p'&format=json";
+					$.ajax({
+						url: aLink,
+						async: false,
+						data: null,
+						success: function(data, status){
+							console.log(status);
+							if (status === "success") {
+								var a = data.query.results.p;
+								var q = QA[j].data.question;
+								QA[j].data.pop();
+								QA[j].data.push({ "question" : q, "answer" : a });
+							}
+						},
+						error: function(msg){
+							console.log(msg);
+						},
+						dataType: "jsonp"
+					});
+				}
+			</script>
+		</p>
+	</body>
+</html>
+
